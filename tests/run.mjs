@@ -1,0 +1,118 @@
+import assert from 'node:assert/strict';
+import {
+  GitHubSyncError,
+  classifyGitHubStatus,
+  encodePath,
+  getMissingSettings,
+  isConflictError,
+  normalizeSettings,
+  userMessageFromError
+} from '../src/github.js';
+import { markdownFromRecord, normalizeRootPath, recordFromMarkdown, recordPath } from '../src/markdown.js';
+
+const tests = [
+  ['record markdown round-trips with frontmatter', () => {
+    const record = {
+      id: 'rec_abc123',
+      content: 'Line one\nLine two',
+      createdAt: '2026-05-04T22:13:01+08:00',
+      updatedAt: '2026-05-04T22:13:01+08:00',
+      deviceId: 'dev_device123',
+      tags: ['inbox'],
+      syncStatus: 'pending'
+    };
+
+    const markdown = markdownFromRecord(record);
+    const parsed = recordFromMarkdown(markdown, {
+      githubPath: 'QuickRecord/records/2026/05/04/example.md',
+      githubSha: 'sha123'
+    });
+
+    assert.equal(parsed.id, record.id);
+    assert.equal(parsed.content, record.content);
+    assert.equal(parsed.createdAt, record.createdAt);
+    assert.equal(parsed.deviceId, record.deviceId);
+    assert.equal(parsed.githubSha, 'sha123');
+    assert.deepEqual(parsed.tags, ['inbox']);
+  }],
+  ['record paths are stable and conflict resistant', () => {
+    const path = recordPath({
+      id: 'rec_abcdef123456',
+      createdAt: '2026-05-04T22:13:01+08:00',
+      deviceId: 'dev_9988776655'
+    }, '/Vault Inbox/');
+
+    assert.equal(path, 'Vault Inbox/records/2026/05/04/20260504-221301-dev99887-recabcde.md');
+  }],
+  ['root path normalization removes empty path parts', () => {
+    assert.equal(normalizeRootPath('/QuickRecord//Inbox/'), 'QuickRecord/Inbox');
+    assert.equal(normalizeRootPath(''), 'QuickRecord');
+  }],
+  ['github settings default branch and root path', () => {
+    const settings = normalizeSettings({
+      owner: '  octo ',
+      repo: ' notes ',
+      token: ' token '
+    });
+
+    assert.equal(settings.owner, 'octo');
+    assert.equal(settings.repo, 'notes');
+    assert.equal(settings.branch, 'main');
+    assert.equal(settings.rootPath, 'QuickRecord');
+    assert.equal(settings.token, 'token');
+  }],
+  ['github content paths are encoded per segment', () => {
+    assert.equal(
+      encodePath('Quick Record/records/2026/05/04/a b.md'),
+      'Quick%20Record/records/2026/05/04/a%20b.md'
+    );
+  }],
+  ['github settings report missing fields', () => {
+    assert.deepEqual(
+      getMissingSettings({ owner: 'octo', repo: '', branch: 'main', token: '' }),
+      ['repo', 'token']
+    );
+  }],
+  ['github status codes map to actionable sync errors', () => {
+    assert.deepEqual(classifyGitHubStatus(401), {
+      code: 'bad_token',
+      message: 'GitHub token 无效或已过期，请重新生成 token。'
+    });
+    assert.equal(classifyGitHubStatus(404).code, 'not_found');
+    assert.equal(classifyGitHubStatus(409).code, 'conflict');
+    assert.equal(
+      classifyGitHubStatus(403, 'API rate limit exceeded', new Headers({ 'x-ratelimit-remaining': '0' })).code,
+      'rate_limit'
+    );
+  }],
+  ['github conflict errors are identifiable and user safe', () => {
+    const error = new GitHubSyncError({
+      code: 'conflict',
+      status: 409,
+      message: '远端文件发生冲突，已保留本地待同步记录。'
+    });
+
+    assert.equal(isConflictError(error), true);
+    assert.equal(userMessageFromError(error), '远端文件发生冲突，已保留本地待同步记录。');
+  }]
+];
+
+let passed = 0;
+
+for (const [name, fn] of tests) {
+  try {
+    await fn();
+    passed += 1;
+    console.log(`ok - ${name}`);
+  } catch (error) {
+    console.error(`not ok - ${name}`);
+    console.error(error);
+    process.exitCode = 1;
+  }
+}
+
+if (process.exitCode) {
+  process.exit();
+}
+
+console.log(`${passed}/${tests.length} tests passed`);

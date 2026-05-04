@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#f7f4ec">
+    <title>Quick Record</title>
+    <link rel="manifest" href="/manifest.webmanifest">
+    <link rel="stylesheet" href="/src/styles.css">
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="topbar">
+        <div>
+          <h1>Quick Record</h1>
+          <p id="deviceLabel" class="muted"></p>
+        </div>
+        <div class="topbar-actions">
+          <button id="syncButton" class="button secondary" type="button">同步</button>
+          <button id="settingsButton" class="button secondary" type="button">设置</button>
+        </div>
+      </header>
+
+      <section class="capture-panel" aria-label="quick capture">
+        <textarea id="contentInput" rows="7" placeholder="马上记录..." autofocus></textarea>
+        <div class="capture-actions">
+          <span id="saveHint" class="muted"></span>
+          <button id="saveButton" class="button primary" type="button">保存</button>
+        </div>
+      </section>
+
+      <section class="status-row" aria-live="polite">
+        <span id="syncStatus">本地就绪</span>
+      </section>
+
+      <section class="records-section">
+        <div class="section-heading">
+          <h2>最近记录</h2>
+          <button id="refreshButton" class="button ghost" type="button">刷新</button>
+        </div>
+        <ol id="recordsList" class="records-list"></ol>
+      </section>
+    </main>
+
+    <dialog id="settingsDialog" class="settings-dialog">
+      <form method="dialog" class="settings-form">
+        <header class="dialog-header">
+          <h2>GitHub 同步</h2>
+          <button class="icon-button" value="cancel" aria-label="关闭" type="submit">x</button>
+        </header>
+
+        <ol class="setup-steps" aria-label="setup steps">
+          <li>数据仓库</li>
+          <li>访问令牌</li>
+          <li>连接测试</li>
+        </ol>
+
+        <label>
+          Owner
+          <input id="ownerInput" name="owner" autocomplete="off" placeholder="github 用户名或组织">
+        </label>
+        <label>
+          Repo
+          <input id="repoInput" name="repo" autocomplete="off" placeholder="仓库名">
+        </label>
+        <label>
+          Branch
+          <input id="branchInput" name="branch" autocomplete="off" placeholder="main">
+        </label>
+        <label>
+          Root Path
+          <input id="rootPathInput" name="rootPath" autocomplete="off" placeholder="QuickRecord">
+        </label>
+        <label>
+          Token
+          <input id="tokenInput" name="token" type="password" autocomplete="off" placeholder="GitHub token">
+        </label>
+
+        <p id="settingsStatus" class="settings-status" aria-live="polite"></p>
+
+        <footer class="dialog-actions">
+          <button class="button secondary" value="cancel" type="submit">取消</button>
+          <button id="testConnectionButton" class="button secondary" type="button">测试连接</button>
+          <button id="saveSettingsButton" class="button primary" value="default" type="button">保存设置</button>
+        </footer>
+      </form>
+    </dialog>
+
+    <script type="module" src="/src/app.js"></script>
+  </body>
+</html>
