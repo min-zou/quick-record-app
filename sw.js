@@ -1,22 +1,32 @@
 const CACHE_NAME = 'quick-record-v2';
+
+function getRelativePath(path) {
+  const base = location.pathname.replace(/\/[^\/]*$/, '/');
+  return new URL(path, location.origin + base).pathname;
+}
+
 const ASSETS = [
-  '/',
-  '/index.html',
-  '/privacy.html',
-  '/manifest.webmanifest',
-  '/src/app.js',
-  '/src/db.js',
-  '/src/github.js',
-  '/src/ids.js',
-  '/src/markdown.js',
-  '/src/styles.css',
-  '/assets/icon-192.png',
-  '/assets/icon-512.png'
+  './',
+  './index.html',
+  './privacy.html',
+  './manifest.webmanifest',
+  './src/app.js',
+  './src/db.js',
+  './src/github.js',
+  './src/ids.js',
+  './src/markdown.js',
+  './src/styles.css',
+  './assets/icon-192.png',
+  './assets/icon-512.png'
 ];
 
 self.addEventListener('install', event => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => cache.addAll(ASSETS))
+    caches.open(CACHE_NAME).then(cache => {
+      const base = location.pathname.replace(/\/[^\/]*$/, '/');
+      const urls = ASSETS.map(p => new URL(p, location.origin + base).href);
+      return cache.addAll(urls);
+    })
   );
   self.skipWaiting();
 });
@@ -67,7 +77,8 @@ self.addEventListener('fetch', event => {
         })
         .catch(() => {
           if (event.request.mode === 'navigate') {
-            return caches.match('/index.html');
+            const base = location.pathname.replace(/\/[^\/]*$/, '/');
+            return caches.match(new URL('./index.html', location.origin + base).href);
           }
         });
     })
