@@ -1,0 +1,40 @@
+{
+  "host": "https://your-domain.com",
+  "name": "Quick Record",
+  "shortName": "Record",
+  "display": "standalone",
+  "themeColor": "#f7f4ec",
+  "navigationColor": "#f7f4ec",
+  "navigationColorDark": "#f7f4ec",
+  "navigationDividerColor": "#f7f4ec",
+  "navigationDividerColorDark": "#f7f4ec",
+  "backgroundColor": "#f7f4ec",
+  "startUrl": "/",
+  "iconUrl": "https://your-domain.com/assets/icon-512.png",
+  "maskableIconUrl": "https://your-domain.com/assets/icon-512.png",
+  "splashScreenFadeOutDuration": 300,
+  "signingKey": {
+    "path": "android.keystore",
+    "alias": "quickrecord"
+  },
+  "appVersionName": "1.0.0",
+  "appVersionCode": 1,
+  "shortcuts": [],
+  "generatorApp": "bubblewrap-cli",
+  "webManifestUrl": "https://your-domain.com/manifest.webmanifest",
+  "fallbackType": "customtabs",
+  "features": {},
+  "alphaDependencies": {
+    "enabled": false
+  },
+  "enableSiteSettingsShortcut": true,
+  "isChromeOSOnly": false,
+  "isMetaQuest": false,
+  "fullScopeUrl": "https://your-domain.com/",
+  "minSdkVersion": 21,
+  "orientation": "portrait",
+  "fingerprints": [],
+  "additionalTrustedOrigins": [],
+  "retainedBundles": [],
+  "appBundle": true
+}

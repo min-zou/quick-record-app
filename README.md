@@ -37,7 +37,7 @@ In the app settings, fill:
 
 The token is stored only in the browser on that device. Do not put it in the repository.
 
-For the canonical Android setup, see [docs/runbooks/android-pwa-setup.md](docs/runbooks/android-pwa-setup.md). Chinese guide: [docs/runbooks/android-pwa-setup.zh-CN.md](docs/runbooks/android-pwa-setup.zh-CN.md).
+For the canonical Android setup, see [docs/runbooks/android-pwa-setup.md](docs/runbooks/android-pwa-setup.md). Chinese guide: [docs/runbooks/android-pwa-setup.zh-CN.md](docs/runbooks/android-pwa-setup.zh-CN.md). For personal GitHub Pages deployment, see [docs/runbooks/github-pages-personal-pwa.zh-CN.md](docs/runbooks/github-pages-personal-pwa.zh-CN.md).
 
 ## Sync Layout
 

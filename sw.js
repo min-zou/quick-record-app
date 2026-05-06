@@ -1,25 +1,34 @@
-const CACHE_NAME = 'quick-record-v1';
+const CACHE_NAME = 'quick-record-v2';
 const ASSETS = [
   '/',
   '/index.html',
+  '/privacy.html',
   '/manifest.webmanifest',
   '/src/app.js',
   '/src/db.js',
   '/src/github.js',
   '/src/ids.js',
   '/src/markdown.js',
-  '/src/styles.css'
+  '/src/styles.css',
+  '/assets/icon-192.png',
+  '/assets/icon-512.png'
 ];
 
 self.addEventListener('install', event => {
-  event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(ASSETS)));
+  event.waitUntil(
+    caches.open(CACHE_NAME).then(cache => cache.addAll(ASSETS))
+  );
   self.skipWaiting();
 });
 
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys().then(keys =>
-      Promise.all(keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key)))
+      Promise.all(
+        keys
+          .filter(key => key !== CACHE_NAME)
+          .map(key => caches.delete(key))
+      )
     )
   );
   self.clients.claim();
@@ -31,11 +40,36 @@ self.addEventListener('fetch', event => {
   }
 
   const url = new URL(event.request.url);
+
   if (url.origin !== location.origin) {
     return;
   }
 
   event.respondWith(
-    caches.match(event.request).then(cached => cached || fetch(event.request))
+    caches.match(event.request).then(cached => {
+      if (cached) {
+        return cached;
+      }
+      return fetch(event.request)
+        .then(response => {
+          if (
+            !response ||
+            response.status !== 200 ||
+            response.type !== 'basic'
+          ) {
+            return response;
+          }
+          const responseToCache = response.clone();
+          caches.open(CACHE_NAME).then(cache => {
+            cache.put(event.request, responseToCache);
+          });
+          return response;
+        })
+        .catch(() => {
+          if (event.request.mode === 'navigate') {
+            return caches.match('/index.html');
+          }
+        });
+    })
   );
 });

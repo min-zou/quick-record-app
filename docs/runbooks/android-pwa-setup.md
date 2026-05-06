@@ -16,7 +16,7 @@ This is the canonical setup for running Quick Record on Android.
   - `quick-record-app` for the web app.
   - `quick-record-data` for records.
 - A GitHub token with `Contents: Read and write` on `quick-record-data`.
-- A hosting target for the app, such as Cloudflare Pages.
+- A hosting target for the app, such as GitHub Pages.
 
 ## 1. Create the repositories
 
@@ -52,18 +52,28 @@ Grant:
 
 ## 4. Deploy the app
 
-In Cloudflare Pages:
+For personal use, GitHub Pages is enough. The current app assumes it is served from the domain root because assets use paths such as `/manifest.webmanifest`, `/sw.js`, and `/src/app.js`.
+
+Recommended GitHub Pages options:
+
+- Use the `<user>.github.io` user site repository, served at `https://<user>.github.io/`.
+- Use a custom domain on an app repository, such as `https://record.example.com/`.
+
+Avoid the project-page URL `https://<user>.github.io/quick-record-app/` unless you also update the PWA paths.
+
+In the app repository:
 
 ```text
-Workers & Pages -> Create application -> Pages -> Connect to Git
+Settings -> Pages
 ```
 
 Use:
 
-- Framework preset: `None`
-- Production branch: `main`
-- Build command: empty
-- Build output directory: `.`
+- Source: `Deploy from a branch`
+- Branch: `main`
+- Folder: `/ (root)`
+
+Chinese GitHub Pages flow: [GitHub Pages 个人部署与安卓安装流程](./github-pages-personal-pwa.zh-CN.md).
 
 ## 5. Install on Android
 

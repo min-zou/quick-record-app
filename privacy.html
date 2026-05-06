@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>隐私政策 - Quick Record</title>
+    <style>
+      body {
+        font-family: system-ui, -apple-system, sans-serif;
+        line-height: 1.7;
+        max-width: 680px;
+        margin: 0 auto;
+        padding: 24px;
+        color: #333;
+        background: #f7f4ec;
+      }
+      h1 { font-size: 1.5rem; margin-bottom: 0.5rem; }
+      h2 { font-size: 1.15rem; margin-top: 1.5rem; margin-bottom: 0.5rem; color: #2d6cdf; }
+      p { margin: 0.5rem 0; }
+      ul { padding-left: 1.5rem; }
+      li { margin: 0.3rem 0; }
+      .updated { color: #666; font-size: 0.9rem; margin-bottom: 1.5rem; }
+      a { color: #2d6cdf; }
+    </style>
+  </head>
+  <body>
+    <h1>Quick Record 隐私政策</h1>
+    <p class="updated">更新日期：2026年5月5日</p>
+
+    <p>Quick Record 是一款本地优先的快速文字记录工具。我们高度重视您的隐私，本政策说明我们如何收集、使用和保护您的信息。</p>
+
+    <h2>1. 数据存储位置</h2>
+    <p>您的所有文字记录默认存储在设备本地的 <strong>IndexedDB</strong> 中，不会自动上传到任何服务器。</p>
+    <p>只有在您主动点击"同步"按钮时，应用才会通过 GitHub API 将记录同步到您<strong>自己配置</strong>的私有 GitHub 仓库。</p>
+
+    <h2>2. GitHub Token 安全</h2>
+    <p>GitHub 访问令牌（Token）仅保存在您当前设备的浏览器本地存储（localStorage）中：</p>
+    <ul>
+      <li>不会传输到除 GitHub API 之外的任何第三方服务</li>
+      <li>不会存储在我们的服务器上（我们没有任何服务器）</li>
+      <li>您随时可以清除浏览器数据来删除该令牌</li>
+    </ul>
+
+    <h2>3. 收集的信息</h2>
+    <p>我们不收集任何个人身份信息。应用仅存储：</p>
+    <ul>
+      <li>您输入的文字记录内容</li>
+      <li>记录创建时间戳</li>
+      <li>设备标识符（用于区分多设备来源）</li>
+    </ul>
+
+    <h2>4. 第三方服务</h2>
+    <p>本应用仅与 <strong>GitHub</strong> 进行交互（当您配置同步后）。您的数据通过 GitHub 的服务条款和隐私政策进行管理。</p>
+
+    <h2>5. 离线使用</h2>
+    <p>Quick Record 支持完全离线使用。没有网络连接时，您可以正常保存和查看记录，待网络恢复后再手动同步。</p>
+
+    <h2>6. 联系我们</h2>
+    <p>如有隐私相关问题，请通过 GitHub Issues 联系我们。</p>
+
+    <p style="margin-top: 2rem; color: #666; font-size: 0.85rem;">
+      本政策可能随应用更新而调整，重大变更将在应用内提示。
+    </p>
+  </body>
+</html>

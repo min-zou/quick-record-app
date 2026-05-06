@@ -1,9 +1,28 @@
 {
   "name": "Quick Record",
   "short_name": "Record",
+  "description": "快速文字记录工具，支持离线保存并通过 GitHub 同步到 Obsidian",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
+  "orientation": "portrait",
   "background_color": "#f7f4ec",
   "theme_color": "#f7f4ec",
-  "icons": []
+  "categories": ["productivity", "utilities"],
+  "icons": [
+    {
+      "src": "/assets/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/assets/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "related_applications": [],
+  "prefer_related_applications": false
 }

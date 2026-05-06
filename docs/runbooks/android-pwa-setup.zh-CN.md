@@ -61,35 +61,50 @@ Repository permissions:
 
 生成后复制 token。不要把 token 写进代码、README、截图或提交记录。
 
-## 4. 部署应用到 Cloudflare Pages
+## 4. 部署应用到 GitHub Pages
 
-进入 Cloudflare 控制台：
+个人使用可以先不上架 Google Play，直接用 GitHub Pages 托管 HTTPS PWA，然后在安卓 Chrome 里安装。
 
-```text
-Workers & Pages -> Create application -> Pages -> Connect to Git
-```
-
-选择 `quick-record-app` 仓库，构建配置填写：
+当前应用的资源路径按域名根目录设计，例如 `/manifest.webmanifest`、`/sw.js` 和 `/src/app.js`。因此推荐二选一：
 
 ```text
-Framework preset: None
-Production branch: main
-Build command: 留空
-Build output directory: .
+方案 A：使用 <你的用户名>.github.io 用户主页仓库
+访问地址：https://<你的用户名>.github.io/
+
+方案 B：使用 quick-record-app 仓库并绑定自定义域名
+访问地址：https://record.example.com/
 ```
 
-部署完成后会得到一个地址，例如：
+不推荐直接使用 `https://<你的用户名>.github.io/quick-record-app/` 这种项目页路径，除非同步修改 PWA 的根路径配置。
+
+进入应用仓库页面：
 
 ```text
-https://quick-record-app.pages.dev
+Settings -> Pages
 ```
+
+设置：
+
+```text
+Source: Deploy from a branch
+Branch: main
+Folder: / (root)
+```
+
+保存后等待部署完成。用户主页仓库的地址类似：
+
+```text
+https://<你的用户名>.github.io/
+```
+
+完整 GitHub Pages 操作流程、部署验证、日常更新和故障排查见：[GitHub Pages 个人部署与安卓安装流程](./github-pages-personal-pwa.zh-CN.md)。
 
 ## 5. 安卓安装应用
 
-在安卓 Chrome 中打开 Cloudflare Pages 地址：
+在安卓 Chrome 中打开 GitHub Pages 地址：
 
 ```text
-https://quick-record-app.pages.dev
+https://<你的用户名>.github.io/
 ```
 
 然后：
@@ -150,7 +165,7 @@ QuickRecord/
 Windows 和 Ubuntu 不需要单独安装客户端，直接打开同一个 PWA 地址：
 
 ```text
-https://quick-record-app.pages.dev
+https://<你的用户名>.github.io/
 ```
 
 填写同一套 GitHub 同步配置即可。每台设备本地各自保存 IndexedDB 数据，通过 `quick-record-data` 仓库交换记录。

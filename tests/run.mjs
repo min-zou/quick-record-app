@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { existsSync, readFileSync } from 'node:fs';
 import {
   GitHubSyncError,
   classifyGitHubStatus,
@@ -94,6 +95,40 @@ const tests = [
 
     assert.equal(isConflictError(error), true);
     assert.equal(userMessageFromError(error), '远端文件发生冲突，已保留本地待同步记录。');
+  }],
+  ['pwa deployment assets referenced by manifest and service worker exist', () => {
+    assert.equal(existsSync('.nojekyll'), true);
+
+    const manifest = JSON.parse(readFileSync('manifest.webmanifest', 'utf8'));
+    assert.equal(manifest.start_url, '/');
+    assert.equal(manifest.scope, '/');
+    assert.ok(Array.isArray(manifest.icons));
+    assert.ok(manifest.icons.length >= 2);
+
+    for (const icon of manifest.icons) {
+      assert.ok(icon.src.startsWith('/assets/'));
+      assert.equal(existsSync(icon.src.slice(1)), true, `${icon.src} should exist`);
+    }
+
+    for (const screenshot of manifest.screenshots || []) {
+      assert.equal(existsSync(screenshot.src.slice(1)), true, `${screenshot.src} should exist`);
+    }
+
+    const sw = readFileSync('sw.js', 'utf8');
+    const assetBlock = sw.match(/const ASSETS = \[([\s\S]*?)\];/);
+    assert.ok(assetBlock, 'service worker should define ASSETS');
+
+    const assets = [...assetBlock[1].matchAll(/'([^']+)'/g)].map(match => match[1]);
+    assert.ok(assets.includes('/manifest.webmanifest'));
+    assert.ok(assets.includes('/assets/icon-192.png'));
+    assert.ok(assets.includes('/assets/icon-512.png'));
+
+    for (const asset of assets) {
+      if (asset === '/') {
+        continue;
+      }
+      assert.equal(existsSync(asset.slice(1)), true, `${asset} should exist`);
+    }
   }]
 ];
 
