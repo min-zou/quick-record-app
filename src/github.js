@@ -62,6 +62,27 @@ export async function testGitHubConnection(settings) {
   const normalized = validateSettings(settings);
   const treeSha = await getBranchTreeSha(normalized);
   await listRecordFiles(normalized);
+
+  // 检测写入权限：尝试写入一个测试文件然后删除
+  // 如果 token 只有 Read 权限，这里会 403
+  const testPath = `${normalized.rootPath}/.quick-record-write-test.md`;
+  const testContent = '# write test\n';
+  try {
+    await putFile(normalized, testPath, testContent, null, 'Quick Record write permission test');
+    // 写入成功，清理测试文件
+    const testFile = await getFile(normalized, testPath);
+    await deleteFile(normalized, testPath, testFile.sha, 'Remove write permission test file');
+  } catch (error) {
+    if (error.status === 403) {
+      throw new GitHubSyncError({
+        code: 'permission_denied',
+        message: 'GitHub token 权限不足，请确认 Contents 权限为 Read and write。',
+        detail: error.detail
+      });
+    }
+    throw error;
+  }
+
   return {
     ok: true,
     owner: normalized.owner,
@@ -196,6 +217,17 @@ export async function putFile(settings, path, text, sha, message) {
   return githubFetch(settings, `/repos/${settings.owner}/${settings.repo}/contents/${encodePath(path)}`, {
     method: 'PUT',
     body: JSON.stringify(body)
+  });
+}
+
+export async function deleteFile(settings, path, sha, message) {
+  return githubFetch(settings, `/repos/${settings.owner}/${settings.repo}/contents/${encodePath(path)}`, {
+    method: 'DELETE',
+    body: JSON.stringify({
+      message,
+      sha,
+      branch: settings.branch
+    })
   });
 }
 
