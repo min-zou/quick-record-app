@@ -7,6 +7,9 @@ import {
   getMissingSettings,
   isConflictError,
   normalizeSettings,
+  normalizeRepositoryPullSettings,
+  recordFileRelativePath,
+  repositoryFileRelativePath,
   userMessageFromError
 } from '../src/github.js';
 import { markdownFromRecord, normalizeRootPath, recordFromMarkdown, recordPath } from '../src/markdown.js';
@@ -67,6 +70,34 @@ const tests = [
       encodePath('Quick Record/records/2026/05/04/a b.md'),
       'Quick%20Record/records/2026/05/04/a%20b.md'
     );
+  }],
+  ['github pulled files are written relative to the configured root path', () => {
+    assert.equal(
+      recordFileRelativePath('QuickRecord/records/2026/05/04/a.md', 'QuickRecord'),
+      'records/2026/05/04/a.md'
+    );
+    assert.equal(
+      recordFileRelativePath('Vault Inbox/records/2026/05/04/a b.md', '/Vault Inbox/'),
+      'records/2026/05/04/a b.md'
+    );
+  }],
+  ['repository pull settings normalize source paths and file extensions', () => {
+    const settings = normalizeRepositoryPullSettings({
+      owner: ' octo ',
+      repo: ' docs ',
+      branch: '',
+      sourcePath: '/notes//inbox/',
+      fileExtensions: '.md, txt MD',
+      token: ' token '
+    });
+
+    assert.equal(settings.owner, 'octo');
+    assert.equal(settings.repo, 'docs');
+    assert.equal(settings.branch, 'main');
+    assert.equal(settings.sourcePath, 'notes/inbox');
+    assert.deepEqual(settings.fileExtensions, ['.md', '.txt']);
+    assert.equal(settings.token, 'token');
+    assert.equal(repositoryFileRelativePath('notes/inbox/a/b.md', 'notes/inbox'), 'a/b.md');
   }],
   ['github settings report missing fields', () => {
     assert.deepEqual(

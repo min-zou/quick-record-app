@@ -39,6 +39,14 @@ The token is stored only in the browser on that device. Do not put it in the rep
 
 For the canonical Android setup, see [docs/runbooks/android-pwa-setup.md](docs/runbooks/android-pwa-setup.md). Chinese guide: [docs/runbooks/android-pwa-setup.zh-CN.md](docs/runbooks/android-pwa-setup.zh-CN.md). For personal GitHub Pages deployment, see [docs/runbooks/github-pages-personal-pwa.zh-CN.md](docs/runbooks/github-pages-personal-pwa.zh-CN.md).
 
+## Pull Options
+
+The main `同步` action pulls remote records first, then pushes pending local records. In `设置`, use `从云端恢复记录` when you only want to import remote Quick Record content into this browser's IndexedDB.
+
+The `工具` dialog contains a separate `仓库拉取到本地` workflow for other repositories. It writes matching text files under a chosen local directory, but it does not import those files into the recent-records list and does not overwrite the Quick Record sync settings.
+
+Pulled paths are written relative to `GitHub Path`, so `docs/a.md` with GitHub path `docs` becomes `a.md` inside the selected folder. As a browser PWA, the app cannot silently write to an arbitrary typed absolute path; the browser directory picker is the local path permission.
+
 ## Sync Layout
 
 Records are written as standalone Markdown files:

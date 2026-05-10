@@ -24,6 +24,17 @@ export function normalizeSettings(settings) {
   };
 }
 
+export function normalizeRepositoryPullSettings(settings) {
+  return {
+    owner: settings.owner?.trim() || '',
+    repo: settings.repo?.trim() || '',
+    branch: settings.branch?.trim() || 'main',
+    sourcePath: normalizeOptionalPath(settings.sourcePath || ''),
+    fileExtensions: normalizeFileExtensions(settings.fileExtensions || '.md'),
+    token: settings.token?.trim() || ''
+  };
+}
+
 export function validateSettings(settings) {
   const normalized = normalizeSettings(settings);
   const missing = getMissingSettings(normalized);
@@ -32,6 +43,20 @@ export function validateSettings(settings) {
     throw new GitHubSyncError({
       code: 'missing_settings',
       message: `GitHub 设置不完整：缺少 ${missing.join(', ')}。`
+    });
+  }
+
+  return normalized;
+}
+
+export function validateRepositoryPullSettings(settings) {
+  const normalized = normalizeRepositoryPullSettings(settings);
+  const missing = ['owner', 'repo', 'branch', 'token'].filter(key => !normalized[key]);
+
+  if (missing.length > 0) {
+    throw new GitHubSyncError({
+      code: 'missing_settings',
+      message: `仓库拉取设置不完整：缺少 ${missing.join(', ')}。`
     });
   }
 
@@ -59,9 +84,8 @@ export async function syncWithGitHub(settings, onProgress = () => {}) {
 }
 
 export async function testGitHubConnection(settings) {
-  const normalized = validateSettings(settings);
-  const treeSha = await getBranchTreeSha(normalized);
-  await listRecordFiles(normalized);
+  const result = await testGitHubReadConnection(settings);
+  const normalized = result.settings;
 
   // 检测写入权限：尝试写入一个测试文件然后删除
   // 如果 token 只有 Read 权限，这里会 403
@@ -88,12 +112,14 @@ export async function testGitHubConnection(settings) {
     owner: normalized.owner,
     repo: normalized.repo,
     branch: normalized.branch,
-    treeSha
+    treeSha: result.treeSha,
+    canWrite: true
   };
 }
 
 export async function pullRecords(settings) {
-  const remoteFiles = await listRecordFiles(settings);
+  const normalized = validateSettings(settings);
+  const remoteFiles = await listRecordFiles(normalized);
   const localRecords = await getAllRecords();
   const byPath = new Map(localRecords.map(record => [record.githubPath, record]));
   const byId = new Map(localRecords.map(record => [record.id, record]));
@@ -105,7 +131,7 @@ export async function pullRecords(settings) {
       continue;
     }
 
-    const markdown = await getFileText(settings, file.path);
+    const markdown = await getFileText(normalized, file.path);
     const record = recordFromMarkdown(markdown, {
       githubPath: file.path,
       githubSha: file.sha,
@@ -133,6 +159,59 @@ export async function pullRecords(settings) {
   }
 
   return imported;
+}
+
+export async function testGitHubReadConnection(settings) {
+  const normalized = validateSettings(settings);
+  const treeSha = await getBranchTreeSha(normalized);
+  await listRecordFiles(normalized);
+
+  return {
+    ok: true,
+    owner: normalized.owner,
+    repo: normalized.repo,
+    branch: normalized.branch,
+    treeSha,
+    settings: normalized
+  };
+}
+
+export async function pullRecordFiles(settings, onFile = () => {}) {
+  const normalized = validateSettings(settings);
+  const remoteFiles = await listRecordFiles(normalized);
+  let pulled = 0;
+
+  for (const file of remoteFiles) {
+    const markdown = await getFileText(normalized, file.path);
+    await onFile({
+      path: file.path,
+      relativePath: recordFileRelativePath(file.path, normalized.rootPath),
+      sha: file.sha,
+      markdown
+    });
+    pulled += 1;
+  }
+
+  return pulled;
+}
+
+export async function pullRepositoryFiles(settings, onFile = () => {}) {
+  const normalized = validateRepositoryPullSettings(settings);
+  const remoteFiles = await listRepositoryFiles(normalized);
+  let pulled = 0;
+
+  for (const file of remoteFiles) {
+    const text = await getFileText(normalized, file.path);
+    await onFile({
+      path: file.path,
+      relativePath: repositoryFileRelativePath(file.path, normalized.sourcePath),
+      sha: file.sha,
+      text
+    });
+    pulled += 1;
+  }
+
+  return pulled;
 }
 
 export async function pushPendingRecords(settings) {
@@ -187,6 +266,72 @@ export async function listRecordFiles(settings) {
   return (tree.tree || [])
     .filter(item => item.type === 'blob' && item.path.startsWith(prefix) && item.path.endsWith('.md'))
     .map(item => ({ path: item.path, sha: item.sha }));
+}
+
+export async function listRepositoryFiles(settings) {
+  const normalized = validateRepositoryPullSettings(settings);
+  const treeSha = await getBranchTreeSha(normalized);
+  const tree = await githubFetch(normalized, `/repos/${normalized.owner}/${normalized.repo}/git/trees/${treeSha}?recursive=1`);
+  const prefix = normalized.sourcePath ? `${normalized.sourcePath}/` : '';
+  const extensions = new Set(normalized.fileExtensions);
+
+  return (tree.tree || [])
+    .filter(item => {
+      if (item.type !== 'blob') {
+        return false;
+      }
+      if (prefix && !item.path.startsWith(prefix)) {
+        return false;
+      }
+      return extensions.size === 0 || extensions.has(fileExtension(item.path));
+    })
+    .map(item => ({ path: item.path, sha: item.sha }));
+}
+
+export function recordFileRelativePath(path, rootPath = 'QuickRecord') {
+  return repositoryFileRelativePath(path, normalizeRootPath(rootPath));
+}
+
+export function repositoryFileRelativePath(path, sourcePath = '') {
+  const normalizedPath = normalizeOptionalPath(path);
+  const source = normalizeOptionalPath(sourcePath);
+  const prefix = source ? `${source}/` : '';
+  const relativePath = normalizedPath.startsWith(prefix)
+    ? normalizedPath.slice(prefix.length)
+    : normalizedPath;
+
+  return relativePath
+    .split('/')
+    .filter(Boolean)
+    .join('/');
+}
+
+export function normalizeOptionalPath(path = '') {
+  return String(path || '')
+    .replace(/\\/g, '/')
+    .split('/')
+    .map(part => part.trim())
+    .filter(Boolean)
+    .join('/');
+}
+
+export function normalizeFileExtensions(value = '.md') {
+  const parts = Array.isArray(value)
+    ? value
+    : String(value || '').split(/[\s,]+/);
+
+  const extensions = parts
+    .map(extension => String(extension || '').trim().toLowerCase())
+    .filter(Boolean)
+    .map(extension => extension.startsWith('.') ? extension : `.${extension}`);
+
+  return [...new Set(extensions)];
+}
+
+function fileExtension(path) {
+  const lastPart = String(path || '').split('/').pop() || '';
+  const index = lastPart.lastIndexOf('.');
+  return index > 0 ? lastPart.slice(index).toLowerCase() : '';
 }
 
 export async function getBranchTreeSha(settings) {

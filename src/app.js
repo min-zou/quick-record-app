@@ -2,6 +2,9 @@ import { getRecentRecords, saveRecord } from './db.js';
 import {
   hasCompleteSettings,
   normalizeSettings,
+  listRepositoryFiles,
+  normalizeRepositoryPullSettings,
+  pullRepositoryFiles,
   pullRecords,
   syncWithGitHub,
   testGitHubConnection,
@@ -11,6 +14,7 @@ import { createId, getOrCreateDeviceId, shortId } from './ids.js';
 import { recordPath, toLocalIso } from './markdown.js';
 
 const SETTINGS_KEY = 'quick-record-github-settings';
+const PULL_SETTINGS_KEY = 'quick-record-repo-pull-settings';
 const deviceId = getOrCreateDeviceId();
 
 const elements = {
@@ -19,6 +23,7 @@ const elements = {
   saveButton: document.querySelector('#saveButton'),
   saveHint: document.querySelector('#saveHint'),
   syncButton: document.querySelector('#syncButton'),
+  toolsButton: document.querySelector('#toolsButton'),
   settingsButton: document.querySelector('#settingsButton'),
   refreshButton: document.querySelector('#refreshButton'),
   syncStatus: document.querySelector('#syncStatus'),
@@ -31,16 +36,31 @@ const elements = {
   tokenInput: document.querySelector('#tokenInput'),
   settingsStatus: document.querySelector('#settingsStatus'),
   testConnectionButton: document.querySelector('#testConnectionButton'),
-  saveSettingsButton: document.querySelector('#saveSettingsButton')
+  restoreRecordsButton: document.querySelector('#restoreRecordsButton'),
+  saveSettingsButton: document.querySelector('#saveSettingsButton'),
+  pullDialog: document.querySelector('#pullDialog'),
+  pullOwnerInput: document.querySelector('#pullOwnerInput'),
+  pullRepoInput: document.querySelector('#pullRepoInput'),
+  pullBranchInput: document.querySelector('#pullBranchInput'),
+  pullSourcePathInput: document.querySelector('#pullSourcePathInput'),
+  pullFileExtensionsInput: document.querySelector('#pullFileExtensionsInput'),
+  pullTokenInput: document.querySelector('#pullTokenInput'),
+  pullStatus: document.querySelector('#pullStatus'),
+  testPullButton: document.querySelector('#testPullButton'),
+  pullToFolderButton: document.querySelector('#pullToFolderButton'),
 };
 
 elements.deviceLabel.textContent = `设备 ${shortId(deviceId, 10)}`;
 
 elements.saveButton.addEventListener('click', saveCurrentRecord);
 elements.syncButton.addEventListener('click', runSync);
+elements.toolsButton.addEventListener('click', openPullTools);
 elements.refreshButton.addEventListener('click', renderRecords);
 elements.settingsButton.addEventListener('click', openSettings);
 elements.testConnectionButton.addEventListener('click', testCurrentSettings);
+elements.restoreRecordsButton.addEventListener('click', restoreRecordsFromCloud);
+elements.testPullButton.addEventListener('click', testPullSettings);
+elements.pullToFolderButton.addEventListener('click', pullToLocalFolder);
 elements.saveSettingsButton.addEventListener('click', saveSettings);
 elements.contentInput.addEventListener('input', updateSaveHint);
 elements.contentInput.addEventListener('keydown', event => {
@@ -169,12 +189,42 @@ function openSettings({ firstRun = false } = {}) {
   }
 }
 
+function openPullTools() {
+  const settings = loadPullSettings();
+  elements.pullOwnerInput.value = settings.owner;
+  elements.pullRepoInput.value = settings.repo;
+  elements.pullBranchInput.value = settings.branch;
+  elements.pullSourcePathInput.value = settings.sourcePath;
+  elements.pullFileExtensionsInput.value = settings.fileExtensions.join(', ');
+  elements.pullTokenInput.value = settings.token;
+  elements.pullStatus.textContent = '';
+  if (!elements.pullDialog.open) {
+    elements.pullDialog.showModal();
+  }
+}
+
 async function testCurrentSettings() {
   setSettingsBusy(true);
   try {
     const settings = readSettingsForm();
     await testGitHubConnection(settings);
     elements.settingsStatus.textContent = '连接成功';
+  } catch (error) {
+    elements.settingsStatus.textContent = userMessageFromError(error);
+  } finally {
+    setSettingsBusy(false);
+  }
+}
+
+async function restoreRecordsFromCloud() {
+  setSettingsBusy(true);
+  try {
+    const settings = readSettingsForm();
+    elements.settingsStatus.textContent = '正在从云端恢复 Quick Record 记录...';
+    const pulled = await pullRecords(settings);
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+    elements.settingsStatus.textContent = `已恢复 ${pulled} 条 Quick Record 记录`;
+    await renderRecords();
   } catch (error) {
     elements.settingsStatus.textContent = userMessageFromError(error);
   } finally {
@@ -201,6 +251,62 @@ async function saveSettings() {
   }
 }
 
+async function testPullSettings() {
+  setPullBusy(true);
+  try {
+    const settings = readPullSettingsForm();
+    const files = await listRepositoryFiles(settings);
+    localStorage.setItem(PULL_SETTINGS_KEY, JSON.stringify(settings));
+    elements.pullStatus.textContent = `读取成功：匹配 ${files.length} 个文件`;
+  } catch (error) {
+    elements.pullStatus.textContent = userMessageFromError(error);
+  } finally {
+    setPullBusy(false);
+  }
+}
+
+async function pullToLocalFolder() {
+  if (!('showDirectoryPicker' in window)) {
+    elements.pullStatus.textContent = '当前浏览器不支持选择本地文件夹，请使用 Chrome 或 Edge。';
+    return;
+  }
+
+  setPullBusy(true);
+  try {
+    const settings = readPullSettingsForm();
+    const files = await listRepositoryFiles(settings);
+    if (files.length === 0) {
+      localStorage.setItem(PULL_SETTINGS_KEY, JSON.stringify(settings));
+      elements.pullStatus.textContent = '没有匹配文件，请检查 GitHub Path 和 File Types。';
+      return;
+    }
+
+    elements.pullStatus.textContent = '请选择本地文件夹...';
+    const directoryHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
+    let written = 0;
+
+    elements.pullStatus.textContent = '正在拉取远端文件...';
+    await pullRepositoryFiles(settings, async file => {
+      await writeTextFile(directoryHandle, file.relativePath, file.text);
+      written += 1;
+      if (written % 10 === 0) {
+        elements.pullStatus.textContent = `正在写入本地文件夹... ${written}`;
+      }
+    });
+
+    localStorage.setItem(PULL_SETTINGS_KEY, JSON.stringify(settings));
+    elements.pullStatus.textContent = `已拉取 ${written} 个文件到 ${directoryHandle.name}`;
+  } catch (error) {
+    if (error?.name === 'AbortError') {
+      elements.pullStatus.textContent = '已取消选择本地文件夹';
+      return;
+    }
+    elements.pullStatus.textContent = userMessageFromError(error);
+  } finally {
+    setPullBusy(false);
+  }
+}
+
 function readSettingsForm() {
   return normalizeSettings({
     owner: elements.ownerInput.value,
@@ -211,11 +317,61 @@ function readSettingsForm() {
   });
 }
 
+function readPullSettingsForm() {
+  return normalizeRepositoryPullSettings({
+    owner: elements.pullOwnerInput.value,
+    repo: elements.pullRepoInput.value,
+    branch: elements.pullBranchInput.value,
+    sourcePath: elements.pullSourcePathInput.value,
+    fileExtensions: elements.pullFileExtensionsInput.value,
+    token: elements.pullTokenInput.value
+  });
+}
+
+async function writeTextFile(rootHandle, relativePath, text) {
+  const parts = getSafePathParts(relativePath);
+  const fileName = parts.pop();
+  let directoryHandle = rootHandle;
+
+  for (const part of parts) {
+    directoryHandle = await directoryHandle.getDirectoryHandle(part, { create: true });
+  }
+
+  const fileHandle = await directoryHandle.getFileHandle(fileName, { create: true });
+  const writable = await fileHandle.createWritable();
+  try {
+    await writable.write(text);
+  } finally {
+    await writable.close();
+  }
+}
+
+function getSafePathParts(path) {
+  const parts = String(path || '')
+    .replace(/\\/g, '/')
+    .split('/')
+    .filter(Boolean);
+
+  if (parts.length === 0 || parts.some(part => part === '.' || part === '..')) {
+    throw new Error('远端文件路径不安全，已中止写入。');
+  }
+
+  return parts;
+}
+
 function loadSettings() {
   try {
     return normalizeSettings(JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}'));
   } catch {
     return normalizeSettings({});
+  }
+}
+
+function loadPullSettings() {
+  try {
+    return normalizeRepositoryPullSettings(JSON.parse(localStorage.getItem(PULL_SETTINGS_KEY) || '{}'));
+  } catch {
+    return normalizeRepositoryPullSettings({});
   }
 }
 
@@ -239,10 +395,17 @@ function setStatus(message) {
 
 function setBusy(isBusy) {
   elements.syncButton.disabled = isBusy;
+  elements.toolsButton.disabled = isBusy;
   elements.saveButton.disabled = isBusy;
 }
 
 function setSettingsBusy(isBusy) {
   elements.testConnectionButton.disabled = isBusy;
+  elements.restoreRecordsButton.disabled = isBusy;
   elements.saveSettingsButton.disabled = isBusy;
+}
+
+function setPullBusy(isBusy) {
+  elements.testPullButton.disabled = isBusy;
+  elements.pullToFolderButton.disabled = isBusy;
 }

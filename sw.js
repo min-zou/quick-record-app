@@ -1,4 +1,4 @@
-const CACHE_NAME = 'quick-record-v2';
+const CACHE_NAME = 'quick-record-v6';
 
 function getRelativePath(path) {
   const base = location.pathname.replace(/\/[^\/]*$/, '/');

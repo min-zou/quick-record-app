@@ -17,6 +17,7 @@
         </div>
         <div class="topbar-actions">
           <button id="syncButton" class="button secondary" type="button">同步</button>
+          <button id="toolsButton" class="button secondary" type="button">工具</button>
           <button id="settingsButton" class="button secondary" type="button">设置</button>
         </div>
       </header>
@@ -81,7 +82,50 @@
         <footer class="dialog-actions">
           <button class="button secondary" value="cancel" type="submit">取消</button>
           <button id="testConnectionButton" class="button secondary" type="button">测试连接</button>
+          <button id="restoreRecordsButton" class="button secondary" type="button">从云端恢复记录</button>
           <button id="saveSettingsButton" class="button primary" value="default" type="button">保存设置</button>
+        </footer>
+      </form>
+    </dialog>
+
+    <dialog id="pullDialog" class="settings-dialog">
+      <form method="dialog" class="settings-form">
+        <header class="dialog-header">
+          <h2>仓库拉取到本地</h2>
+          <button class="icon-button" value="cancel" aria-label="关闭" type="submit">x</button>
+        </header>
+
+        <label>
+          Source Owner
+          <input id="pullOwnerInput" name="pullOwner" autocomplete="off" placeholder="github 用户名或组织">
+        </label>
+        <label>
+          Source Repo
+          <input id="pullRepoInput" name="pullRepo" autocomplete="off" placeholder="仓库名">
+        </label>
+        <label>
+          Source Branch
+          <input id="pullBranchInput" name="pullBranch" autocomplete="off" placeholder="main">
+        </label>
+        <label>
+          GitHub Path
+          <input id="pullSourcePathInput" name="pullSourcePath" autocomplete="off" placeholder="docs 或 QuickRecord/records，留空表示仓库根目录">
+        </label>
+        <label>
+          File Types
+          <input id="pullFileExtensionsInput" name="pullFileExtensions" autocomplete="off" placeholder=".md">
+        </label>
+        <label>
+          Token
+          <input id="pullTokenInput" name="pullToken" type="password" autocomplete="off" placeholder="GitHub token">
+        </label>
+
+        <p id="pullStatus" class="settings-status" aria-live="polite"></p>
+
+        <footer class="dialog-actions">
+          <button class="button secondary" value="cancel" type="submit">取消</button>
+          <button id="testPullButton" class="button secondary" type="button">测试读取</button>
+          <button id="pullToFolderButton" class="button primary" type="button">选择文件夹并拉取</button>
         </footer>
       </form>
     </dialog>
